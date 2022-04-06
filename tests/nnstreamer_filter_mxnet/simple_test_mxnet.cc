@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string.h>
 #include <thread>
+#include <nnstreamer_util.h>
 
 #define NUM_INFERENCE_BATCHES (500)
 
@@ -105,6 +106,9 @@ push_data (AppData *data)
 static void
 start_feed (GstElement *source, guint size, AppData *data)
 {
+  UNUSED(source);
+  UNUSED(size);
+  UNUSED(data);
   if (data->sourceid == 0) {
     data->sourceid = g_idle_add ((GSourceFunc)push_data, data);
   }
@@ -115,6 +119,7 @@ start_feed (GstElement *source, guint size, AppData *data)
 static void
 stop_feed (GstElement *source, AppData *data)
 {
+  UNUSED(source);
   if (data->sourceid != 0) {
     g_source_remove (data->sourceid);
     data->sourceid = 0;
@@ -151,6 +156,7 @@ new_sample (GstElement *sink, AppData *data)
 static gboolean
 on_pipeline_message (GstBus *bus, GstMessage *message, AppData *data)
 {
+  UNUSED(bus);
   switch (GST_MESSAGE_TYPE (message)) {
   case GST_MESSAGE_EOS:
     g_main_loop_quit (data->main_loop);
@@ -178,6 +184,8 @@ on_pipeline_message (GstBus *bus, GstMessage *message, AppData *data)
   return TRUE;
 }
 
+AppData data;
+
 int
 main (int argc, char *argv[])
 {
@@ -194,9 +202,8 @@ main (int argc, char *argv[])
 
   /* Run the NNStreamer implementation */
   {
-    AppData data;
     GstBus *bus;
-    memset (&data, 0, sizeof (data));
+    // memset (&data, 0, sizeof (AppData));
 
     /* Initialize dataset iterator */
     data.data_iter = get_dataset ();
@@ -256,6 +263,14 @@ main (int argc, char *argv[])
     gst_element_set_state (data.pipeline, GST_STATE_NULL);
     gst_object_unref (data.pipeline);
   }
+
+  // for (auto x:reference_result) {
+  //   printf("REF: %lf\n", x);
+  // }
+
+  // for (auto x:nnstreamer_result) {
+  //   printf("NNStreamer: %lf\n", x);
+  // }
 
   /* Compare results */
   if (reference_result != nnstreamer_result) {
